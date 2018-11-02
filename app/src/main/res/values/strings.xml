@@ -270,6 +270,7 @@
     <string name="create_code">Create Code</string>
     <string name="flash_microbit">Flash</string>
     <string name="connect_device">Connect</string>
+    <string name="connect_hub_device">Connect Hub</string>
     <string name="discover">Discover</string>
 
     <string name="email_body" formatted="false">
@@ -300,6 +301,7 @@
     <string name="manage_and_remove_microbit">How do I remove a paired micro:bit?</string>
     <string name="desc_homescreen_logo_img">Hello</string>
     <string name="desc_connect_btn">Connect</string>
+    <string name="desc_hub_connect_btn">Connect Hub</string>
     <string name="desc_flash_btn">Flash</string>
     <string name="desc_create_code">Create Code</string>
     <string name="desc_discover">Discover</string>

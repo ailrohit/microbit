@@ -1,6 +1,8 @@
 package com.samsung.microbit.ui.activity;
 
 import android.Manifest;
+import android.app.ActivityManager;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
@@ -33,6 +35,7 @@ import com.samsung.microbit.MBApp;
 import com.samsung.microbit.R;
 import com.samsung.microbit.core.GoogleAnalyticsManager;
 import com.samsung.microbit.data.constants.PermissionCodes;
+import com.samsung.microbit.service.HubService;
 import com.samsung.microbit.service.IPCService;
 import com.samsung.microbit.ui.PopUp;
 import com.samsung.microbit.utils.FileUtils;
@@ -66,6 +69,9 @@ public class HomeActivity extends AppCompatActivity implements View.OnClickListe
     /* Debug code ends*/
 
     private String emailBodyString;
+
+    private HubService mHubService = null;
+    public Intent mServiceIntent = null;
 
     /**
      * Provides simplified way to log informational messages.
@@ -152,6 +158,9 @@ public class HomeActivity extends AppCompatActivity implements View.OnClickListe
         createCodeButton.setTypeface(typeface);
         Button discoverButton = (Button) findViewById(R.id.discover_btn);
         discoverButton.setTypeface(typeface);
+
+        Button connectHubButton = (Button) findViewById(R.id.connect_hub_device_btn);
+        connectHubButton.setTypeface(typeface);
     }
 
     /**
@@ -273,6 +282,7 @@ public class HomeActivity extends AppCompatActivity implements View.OnClickListe
         Utils.unbindDrawables(findViewById(R.id.flash_microbit_btn));
         Utils.unbindDrawables(findViewById(R.id.create_code_btn));
         Utils.unbindDrawables(findViewById(R.id.discover_btn));
+        Utils.unbindDrawables(findViewById(R.id.connect_hub_device_btn));
 
         Utils.unbindDrawables(findViewById(R.id.img_toolbar_logo));
         Utils.unbindDrawables(findViewById(R.id.toolbar));
@@ -368,6 +378,19 @@ public class HomeActivity extends AppCompatActivity implements View.OnClickListe
                 Intent intent = new Intent(Intent.ACTION_VIEW);
                 intent.setData(Uri.parse(getString(R.string.discover_url)));
                 startActivity(intent);
+                break;
+            case R.id.connect_hub_device_btn:
+                {
+                    if(null == mHubService) {
+                        mHubService = new HubService(this);
+                    }
+                    if(null == mServiceIntent) {
+                        mServiceIntent = new Intent(this, mHubService.getClass());
+                    }
+                    if (!isMyServiceRunning(mHubService.getClass())) {
+                        startService(mServiceIntent);
+                    }
+                }
                 break;
 
             // TODO: HACK - Navigation View items from drawer here instead of [onNavigationItemSelected]
@@ -582,6 +605,18 @@ public class HomeActivity extends AppCompatActivity implements View.OnClickListe
                 }
             }
         }
+    }
+
+    private boolean isMyServiceRunning(Class<?> serviceClass) {
+        ActivityManager manager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
+        for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
+            if (serviceClass.getName().equals(service.service.getClassName())) {
+                Log.i ("isMyServiceRunning?", true+"");
+                return true;
+            }
+        }
+        Log.i ("isMyServiceRunning?", false+"");
+        return false;
     }
 
     @Override

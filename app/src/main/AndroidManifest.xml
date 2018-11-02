@@ -15,9 +15,9 @@
 	This is on School_Project
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-          package="com.samsung.microbit"
-          android:versionCode="12"
-          android:versionName="2.0">
+    package="com.samsung.microbit">
+
+    <uses-feature android:name="android.hardware.usb.host" />
 
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>
@@ -79,9 +79,9 @@
                 <category android:name="android.intent.category.BROWSABLE"/>
 
                 <data android:host="*"
-                      android:mimeType="*/*"
-                      android:pathPattern=".*\\.hex"
-                      android:scheme="file"/>
+                    android:mimeType="*/*"
+                    android:pathPattern=".*\\.hex"
+                    android:scheme="file"/>
             </intent-filter>
 
             <!-- This filter works, when request - open download from Internet Browser list (Android 6.0) -->
@@ -92,7 +92,7 @@
                 <category android:name="android.intent.category.BROWSABLE"/>
 
                 <data android:mimeType="application/x-microbit-hex"
-                      android:scheme="content"/>
+                    android:scheme="content"/>
             </intent-filter>
 
             <!-- This filter works, when request - open file from File Share app. (Google Drive, DropBox, etc.) -->
@@ -103,7 +103,7 @@
                 <category android:name="android.intent.category.BROWSABLE"/>
 
                 <data android:mimeType="application/octet-stream"
-                      android:scheme="content"/>
+                    android:scheme="content"/>
             </intent-filter>
 
         </activity>
@@ -168,6 +168,10 @@
             android:name=".service.IPCService"
             android:enabled="true"
             android:exported="false"/>
+        <service
+            android:name=".service.HubService"
+            android:enabled="true"
+            android:exported="false"/>
 
         <activity
             android:name=".ui.activity.SplashScreenActivity"
@@ -178,12 +182,26 @@
 
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+
+            <intent-filter>
+                <action android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED"
+                android:resource="@xml/device_filter" />
         </activity>
 
         <receiver android:name=".core.PopUpServiceReceiver"
-                  android:exported="false">
+            android:exported="false">
             <intent-filter>
                 <action android:name="com.samsung.microbit.core.SHOWFROMSERVICE"/>
+            </intent-filter>
+        </receiver>
+        <receiver android:name=".core.HubServiceRestartReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.samsung.microbit.service.HubService.RestartService"/>
             </intent-filter>
         </receiver>
     </application>

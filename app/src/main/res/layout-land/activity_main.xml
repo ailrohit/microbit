@@ -70,6 +70,16 @@
             style="@style/main_activity_button_style"
             android:contentDescription="@string/desc_discover"
             android:drawableTop="@drawable/ic_discover"
+            android:nextFocusDown="@+id/connect_hub_device_btn"
             android:text="@string/discover" />
+
+        <!-- Connect Hub micro-bit -->
+        <Button
+            android:id="@+id/connect_hub_device_btn"
+            style="@style/main_activity_button_style"
+            android:contentDescription="@string/desc_hub_connect_btn"
+            android:drawableTop="@drawable/ic_connect"
+            android:text="@string/connect_hub_device" />
+
     </LinearLayout>
 </LinearLayout>

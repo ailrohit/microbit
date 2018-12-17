@@ -78,7 +78,7 @@
             android:id="@+id/connect_hub_device_btn"
             style="@style/main_activity_button_style"
             android:contentDescription="@string/desc_hub_connect_btn"
-            android:drawableTop="@drawable/ic_connect"
+            android:drawableTop="@drawable/device_status_connected"
             android:text="@string/connect_hub_device" />
 
     </LinearLayout>

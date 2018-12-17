@@ -2,8 +2,10 @@ package com.samsung.microbit.ui.activity;
 
 import android.Manifest;
 import android.app.ActivityManager;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
@@ -14,6 +16,7 @@ import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
+import android.support.v4.content.LocalBroadcastManager;
 import android.support.v4.content.PermissionChecker;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
@@ -53,6 +56,8 @@ public class HomeActivity extends AppCompatActivity implements View.OnClickListe
     private static final String TAG = HomeActivity.class.getSimpleName();
 
     public static final String FIRST_RUN = "firstrun";
+    public static final String INTENT_ACTION_CREATED = "HomeActivity.CREATED";
+    public static final String INTENT_ACTION_DESTROYED = "HomeActivity.DESTROYED";
 
     // share stats checkbox
     private CheckBox mShareStatsCheckBox;
@@ -95,6 +100,18 @@ public class HomeActivity extends AppCompatActivity implements View.OnClickListe
         setupDrawer();
         setupButtonsFontStyle();
         initGifImage();
+
+        Button connectHubButton = (Button) findViewById(R.id.connect_hub_device_btn);
+        if(HubService.IsHubActive)
+        {
+            connectHubButton.setText(R.string.desc_hub_connected_btn);
+            //connectHubButton.setCompoundDrawablesWithIntrinsicBounds(null,getResources().getDrawable(R.drawable.device_status_connected),null,null);
+        }
+        else
+        {
+            connectHubButton.setText(R.string.desc_hub_connect_btn);
+            //connectHubButton.setCompoundDrawablesWithIntrinsicBounds(null,getResources().getDrawable(R.drawable.ic_connect),null,null);
+        }
     }
 
     /**
@@ -111,8 +128,10 @@ public class HomeActivity extends AppCompatActivity implements View.OnClickListe
         GoogleAnalyticsManager.getInstance().activityStart(this);
     }
 
+
     @Override
     protected void onStop() {
+        if(DEBUG) logi("onStop() :: ");
         super.onStop();
         GoogleAnalyticsManager.getInstance().activityStop(this);
     }
@@ -142,6 +161,67 @@ public class HomeActivity extends AppCompatActivity implements View.OnClickListe
         }
 
         initGifImage();
+
+
+        LocalBroadcastManager localBroadcastManager = LocalBroadcastManager.getInstance(this);
+        IntentFilter popupActivityFilter = new IntentFilter();
+        popupActivityFilter.addAction(HubService.HUB_SERVICE_DEVICE_EVENT);
+        registerReceiver(broadcastReceiver, popupActivityFilter);
+
+        //listen for close or update progress.xml request
+        localBroadcastManager.registerReceiver(broadcastReceiver, popupActivityFilter);
+
+        //notify creation of activity to calling code PopUp class
+        localBroadcastManager.sendBroadcast(new Intent(INTENT_ACTION_CREATED));
+    }
+
+    /**
+     * A broadcast receiver that handles amount of actions such as
+     * intent to close a popup, update a progress bar or update a layout.
+     */
+    private BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
+
+        @Override
+        public void onReceive(Context context, final Intent intent) {
+            if(intent.getAction().equals(HubService.HUB_SERVICE_DEVICE_EVENT)) {
+                int state = intent.getIntExtra(HubService.HUB_SERVICE_DEVICE_EVENT_CONNECTED,0);
+                Button connectHubButton = (Button) findViewById(R.id.connect_hub_device_btn);
+                if(state == 0)
+                {
+                    connectHubButton.setText(R.string.desc_hub_connect_btn);
+                    //connectHubButton.setCompoundDrawablesWithIntrinsicBounds(null,getResources().getDrawable(R.drawable.ic_connect),null,null);
+                }
+                if(state == 1)
+                {
+                    connectHubButton.setText(R.string.desc_hub_connected_btn);
+                    //connectHubButton.setCompoundDrawablesWithIntrinsicBounds(null,getResources().getDrawable(R.drawable.device_status_connected),null,null);
+                }
+            }
+        }
+    };
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        logi("onNewIntent() :: ");
+        if(null != intent)
+        {
+            String action = intent.getAction();
+            if(action.compareToIgnoreCase("") == 0)
+            {
+                Button connectHubButton = (Button) findViewById(R.id.connect_hub_device_btn);
+                if(HubService.IsHubActive)
+                {
+                    connectHubButton.setText(R.string.desc_hub_connected_btn);
+                    //connectHubButton.setCompoundDrawablesWithIntrinsicBounds(null,getResources().getDrawable(R.drawable.device_status_connected),null,null);
+                }
+                else
+                {
+                    connectHubButton.setText(R.string.desc_hub_connect_btn);
+                    //connectHubButton.setCompoundDrawablesWithIntrinsicBounds(null,getResources().getDrawable(R.drawable.ic_connect),null,null);
+                }
+            }
+        }
+        super.onNewIntent(intent);
     }
 
     /**
@@ -271,10 +351,16 @@ public class HomeActivity extends AppCompatActivity implements View.OnClickListe
 
     @Override
     protected void onDestroy() {
+        LocalBroadcastManager localBroadcastManager = LocalBroadcastManager.getInstance(this);
+
+        localBroadcastManager.sendBroadcast(new Intent(INTENT_ACTION_DESTROYED));
+        localBroadcastManager.unregisterReceiver(broadcastReceiver);
         super.onDestroy();
 
         unbindDrawables();
     }
+
+
 
     private void unbindDrawables() {
         Utils.unbindDrawables(gifAnimationHelloEmoji);
@@ -328,6 +414,7 @@ public class HomeActivity extends AppCompatActivity implements View.OnClickListe
 
     @Override
     protected void onPause() {
+        if(DEBUG) logi("onPause() :: ");
         super.onPause();
         // Pause animation
         gifAnimationHelloEmoji.setFreezesAnimation(true);
@@ -627,4 +714,6 @@ public class HomeActivity extends AppCompatActivity implements View.OnClickListe
             gifAnimationHelloEmoji.animate();
         }
     }
+
+
 }

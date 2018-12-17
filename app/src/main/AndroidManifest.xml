@@ -59,6 +59,7 @@
             android:name=".ui.activity.HomeActivity"
             android:configChanges="orientation|screenSize|keyboardHidden"
             android:label="@string/home_activity_name"
+            android:exported="true"
             android:launchMode="singleTop"/>
 
         <!-- label was changed(removed colon), because some file managers (e.g. Total Commander) cannot open the activity.-->
@@ -141,7 +142,7 @@
             android:label="Help Webview"
             android:launchMode="singleTask"
             android:screenOrientation="portrait">
-            >
+
         </activity>
         <activity
             android:name=".ui.activity.CameraActivityPermissionChecker"

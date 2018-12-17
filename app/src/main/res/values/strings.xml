@@ -302,6 +302,7 @@
     <string name="desc_homescreen_logo_img">Hello</string>
     <string name="desc_connect_btn">Connect</string>
     <string name="desc_hub_connect_btn">Connect Hub</string>
+    <string name="desc_hub_connected_btn">Hub Connected</string>
     <string name="desc_flash_btn">Flash</string>
     <string name="desc_create_code">Create Code</string>
     <string name="desc_discover">Discover</string>

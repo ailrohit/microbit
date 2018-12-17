@@ -18,6 +18,7 @@ import android.widget.Toast;
 import com.hoho.android.usbserial.driver.UsbSerialDriver;
 import com.hoho.android.usbserial.driver.UsbSerialPort;
 import com.hoho.android.usbserial.driver.UsbSerialProber;
+import com.hoho.android.usbserial.util.HexDump;
 import com.hoho.android.usbserial.util.SerialInputOutputManager;
 import com.samsung.microbit.data.model.RadioPacket;
 
@@ -25,24 +26,31 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class HubService extends Service {
     private static final String TAG = HubService.class.getSimpleName();
-    public static int counter=0;
+    private static int counter=0;
     private static UsbManager mUsbManager = null;
     private static final int MESSAGE_REFRESH = 101;
     private static final int MESSAGE_OPEN_PORT = 102;
     private static final long REFRESH_TIMEOUT_MILLIS = 10000;
     private static final int MICROBIT_VENDOR_ID = 3368;
     private static final int MICROBIT_PRODUCT_ID = 516;
-    private static boolean isMicrobitConnected = false;
-    public static boolean IsHubActive = false;
+    public static boolean isMicrobitConnected = false;
     private static UsbSerialPort microBitPort = null;
-
     private final ExecutorService mExecutor = Executors.newSingleThreadExecutor();
+
+
+
+    public static String HUB_SERVICE_DEVICE_EVENT = "com.samsung.microbit.service.device.event";
+    public static String HUB_SERVICE_DEVICE_EVENT_CONNECTED = "connected";
+    //public static String HUB_SERVICE_DEVICE_EVENT_DISCONNECTED = "disconnected";
+    public static String HUB_SERVICE_RESTART = "com.samsung.microbit.service.HubService.RestartService";
+    public static boolean IsHubActive = false;
 
     public HubService(Context applicationContext)
     {
@@ -85,14 +93,9 @@ public class HubService extends Service {
     public void onDestroy() {
         super.onDestroy();
         Log.i(TAG, "ondestroy!");
-        Intent broadcastIntent = new Intent("com.samsung.microbit.service.HubService.RestartService");
+        Intent broadcastIntent = new Intent(HUB_SERVICE_RESTART);
         sendBroadcast(broadcastIntent);
     }
-
-
-
-
-
 
 
     @Nullable
@@ -120,9 +123,6 @@ public class HubService extends Service {
                 microBitPort.setParameters(115200, 8, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE);
                 microBitPort.setDTR(true);
                 microBitPort.setRTS(true);
-
-
-
             } catch (IOException e) {
                 Log.e(TAG, "Error setting up device: " + e.getMessage(), e);
                 Toast.makeText(this, "Error opening device: " + e.getMessage() , Toast.LENGTH_SHORT).show();
@@ -136,6 +136,10 @@ public class HubService extends Service {
             }
             Toast.makeText(this, "Serial device: " + microBitPort.getClass().getSimpleName() , Toast.LENGTH_SHORT).show();
             Log.i(TAG, "Serial device: " + microBitPort.getClass().getSimpleName());
+            Intent intent = new Intent(HUB_SERVICE_DEVICE_EVENT);
+            intent.putExtra(HUB_SERVICE_DEVICE_EVENT_CONNECTED,1);
+            sendBroadcast(intent);
+            isMicrobitConnected = true;
         }
         onDeviceStateChange();
     }
@@ -168,6 +172,10 @@ public class HubService extends Service {
 
                 @Override
                 public void onRunError(Exception e) {
+                    isMicrobitConnected =false;
+                    Intent intent = new Intent(HUB_SERVICE_DEVICE_EVENT);
+                    intent.putExtra(HUB_SERVICE_DEVICE_EVENT_CONNECTED,0);
+                    sendBroadcast(intent);
                     Log.d(TAG, "Runner stopped.");
                 }
 
@@ -179,16 +187,20 @@ public class HubService extends Service {
 
     private String commandStr = "";
     ByteBuffer pump_on_buf = ByteBuffer.allocate(256);
+    private int pump_lenght = 0;
 
     private void updateReceivedData(byte[] data){
 
         String dataSample = "";
-        byte[] endBytes = new byte[] {0x00,(byte)0xc0};
+        byte[] endBytes = new byte[] {(byte)0xc0};
         if(data.length > 0)
         {
+            pump_lenght += data.length;
             pump_on_buf.put(data);
             try {
                 dataSample = new String(data,"UTF-8");
+                Log.d(TAG,"coming text " + dataSample  + " length is " + data.length);
+                Log.d(TAG,"coming hex " + HexDump.dumpHexString(data));
             } catch (UnsupportedEncodingException e) {
                 e.printStackTrace();
             }
@@ -198,7 +210,8 @@ public class HubService extends Service {
                 String FinalStr = commandStr + dataSample;
 
                 Log.d(TAG, "Command: " + FinalStr);
-                final byte [] packetBytes = pump_on_buf.array();
+                byte [] wholeBytes = pump_on_buf.array();
+                final byte [] packetBytes =  Arrays.copyOfRange(wholeBytes,0,(pump_lenght));
                 mHandler.postDelayed(new Runnable() {
                     @Override
                     public void run() {
@@ -206,13 +219,21 @@ public class HubService extends Service {
                         processPacket(packet);
 
                         RadioPacket returnPacket = new RadioPacket(packet);
-                        returnPacket.append("OK");
+
+                        if(returnPacket.getRequestType() == RadioPacket.REQUEST_TYPE_HELLO)
+                        {
+                            returnPacket.append(0);
+                        }
+                        else {
+                            returnPacket.append("OK");
+                        }
                         mSerialIoManager.writeAsync(returnPacket.marshall((byte)0));
                     }
                 },500);
 
                 commandStr = "done";
                 pump_on_buf.clear();
+                pump_lenght = 0;
 
             }
         }
@@ -252,7 +273,7 @@ public class HubService extends Service {
 
                     if(device.getVendorId() == MICROBIT_VENDOR_ID && device.getProductId() == MICROBIT_PRODUCT_ID)
                     {
-                        isMicrobitConnected = true;
+
                         microBitPort = port;
                         mHandler.sendEmptyMessage(MESSAGE_OPEN_PORT);
                     }

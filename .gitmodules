@@ -1,0 +1,3 @@
+[submodule "app/src/main/assets/rest-radio"]
+	path = app/src/main/assets/rest-radio
+	url = https://github.com/lancaster-university/rest-radio.git

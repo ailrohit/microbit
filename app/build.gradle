@@ -32,4 +32,5 @@ dependencies {
     implementation project(':android-gif-drawable-1.1.13')
     implementation 'com.google.android.gms:play-services-analytics:9.2.0'
     implementation 'com.google.code.gson:gson:2.8.2'
+    implementation 'com.android.volley:volley:1.1.0'
 }

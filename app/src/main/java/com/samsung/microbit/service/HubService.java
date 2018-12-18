@@ -15,19 +15,33 @@ import android.support.annotation.Nullable;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.android.volley.AuthFailureError;
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.Volley;
 import com.hoho.android.usbserial.driver.UsbSerialDriver;
 import com.hoho.android.usbserial.driver.UsbSerialPort;
 import com.hoho.android.usbserial.driver.UsbSerialProber;
 import com.hoho.android.usbserial.util.HexDump;
 import com.hoho.android.usbserial.util.SerialInputOutputManager;
+import com.samsung.microbit.core.RadioJsonObjectRequest;
+import com.samsung.microbit.core.VolleyResponse;
+import com.samsung.microbit.data.model.HubRestAPIParams;
 import com.samsung.microbit.data.model.RadioPacket;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -48,9 +62,9 @@ public class HubService extends Service {
 
     public static String HUB_SERVICE_DEVICE_EVENT = "com.samsung.microbit.service.device.event";
     public static String HUB_SERVICE_DEVICE_EVENT_CONNECTED = "connected";
-    //public static String HUB_SERVICE_DEVICE_EVENT_DISCONNECTED = "disconnected";
     public static String HUB_SERVICE_RESTART = "com.samsung.microbit.service.HubService.RestartService";
     public static boolean IsHubActive = false;
+    private RequestQueue requestQueue = null;
 
     public HubService(Context applicationContext)
     {
@@ -216,18 +230,17 @@ public class HubService extends Service {
                     @Override
                     public void run() {
                         RadioPacket packet = new RadioPacket(packetBytes);
-                        processPacket(packet);
-
-                        RadioPacket returnPacket = new RadioPacket(packet);
-
-                        if(returnPacket.getRequestType() == RadioPacket.REQUEST_TYPE_HELLO)
+                        if(packet.getRequestType() == RadioPacket.REQUEST_TYPE_HELLO)
                         {
+                            RadioPacket returnPacket = new RadioPacket(packet);
                             returnPacket.append(0);
+                            mSerialIoManager.writeAsync(returnPacket.marshall((byte)0));
                         }
                         else {
-                            returnPacket.append("OK");
+                            processPacket(packet);
                         }
-                        mSerialIoManager.writeAsync(returnPacket.marshall((byte)0));
+
+
                     }
                 },500);
 
@@ -291,9 +304,210 @@ public class HubService extends Service {
     }
 
     private void processPacket(RadioPacket packet) {
-        // needed to implement
+        String url = HubRestAPIParams.SamsungIOT_Url;
+        String parts [] = packet.getStringData().split("/");
+        JSONObject post_params = new JSONObject();
+
+        if(parts.length == 0)
+        {
+            // handle exception nothing can be done
+            RadioPacket returnPacket = new RadioPacket(packet);
+            returnPacket.append("packet error");
+            mSerialIoManager.writeAsync(returnPacket.marshall((byte)0));
+            return;
+        }
+
+        if(parts[1].compareToIgnoreCase(HubRestAPIParams.PKG_IOT) == 0)
+        {
+            url = HubRestAPIParams.SamsungIOT_Url;
+
+                url = url + parts[3];
+
+            if(parts[2].compareToIgnoreCase("bulbState") == 0
+                    || parts[2].compareToIgnoreCase("switchState") == 0)
+            {
+
+                if((packet.getRequestType() ==  RadioPacket.REQUEST_TYPE_POST_REQUEST)&& packet.getIntData() == 0)
+                {
+                    try {
+                        post_params.put("value", "off");
+                    }catch (JSONException e){
+
+                    }
+                }
+
+                if((packet.getRequestType() ==  RadioPacket.REQUEST_TYPE_POST_REQUEST)&& packet.getIntData() == 1)
+                {
+                    try {
+                        post_params.put("value", "on");
+                    }catch (JSONException e){
+
+                    }
+                }
+
+                url = url + "/switch/";
+            }
+            else if(parts[2].compareToIgnoreCase("bulbLevel") == 0)
+            {
+                if((packet.getRequestType() ==  RadioPacket.REQUEST_TYPE_POST_REQUEST)) {
+                    try {
+                        post_params.put("value", parts[3]);
+                    } catch (JSONException e) {
+
+                    }
+                }
+
+                url = url + "/switch-level/";
+            }
+            else if(parts[2].compareToIgnoreCase("bulbTemp") == 0)
+            {
+                if(packet.getRequestType() ==  RadioPacket.REQUEST_TYPE_POST_REQUEST) {
+                    try {
+                        post_params.put("value", parts[3]);
+                    } catch (JSONException e) {
+
+                    }
+                }
+                url = url + "/color-temperature/";
+            }
+            else if(parts[2].compareToIgnoreCase("sensorState") == 0)
+            {
+                url = url + "/motion/";
+            }
+            else if(parts[2].compareToIgnoreCase("sensorTemp") == 0)
+            {
+                url = url + "/temperature/";
+            }
+            else if(parts[2].compareToIgnoreCase("bulbColour") == 0)
+            {
+                if(packet.getRequestType() ==  RadioPacket.REQUEST_TYPE_POST_REQUEST) {
+                    try {
+                        post_params.put("value", parts[2]);
+                    } catch (JSONException e) {
+
+                    }
+                }
+                url = url + "/color-control/";
+            }
+        }
+        else if (parts[0].compareToIgnoreCase(HubRestAPIParams.PKG_SHARE) == 0)
+        {
+            url = HubRestAPIParams.ShareDataUrl;
+            if(parts[1].compareToIgnoreCase("fetchData") == 0)
+            {
+
+            }
+            else if (parts[1].compareToIgnoreCase("shareData") == 0)
+            {
+
+            }
+            else if (parts[1].compareToIgnoreCase("historicalData") == 0)
+            {
+                url = HubRestAPIParams.HistoricalUrl;
+            }
+        }
+
+
+
+
+            if (packet.getRequestType() == RadioPacket.REQUEST_TYPE_POST_REQUEST) {
+
+
+                RadioJsonObjectRequest jsonObjReq = new RadioJsonObjectRequest(Request.Method.POST,
+                        url, post_params,
+                        packet,
+                        radioListener,
+                        responseLister,
+                        new Response.ErrorListener() {
+                            @Override
+                            public void onErrorResponse(VolleyError error) {
+                                //Failure Callback
+                            }
+                        }) {
+                    /**
+                     * Passing some request headers*
+                     */
+                    @Override
+                    public Map getHeaders() throws AuthFailureError {
+                        HashMap headers = new HashMap();
+                        headers.put("Content-Type", "application/json; charset=utf-8");
+                        headers.put("school-id", HubRestAPIParams.SchoolID);
+                        headers.put("pi-id", HubRestAPIParams.HubID);
+                        return headers;
+                    }
+                };
+
+                // Adding the request to the queue along with a unique string tag
+                addToRequestQueue(jsonObjReq, "postRequest");
+            }
+
+
+
+        if (packet.getRequestType() == RadioPacket.REQUEST_TYPE_GET_REQUEST) {
+
+            RadioJsonObjectRequest jsonObjReq = new RadioJsonObjectRequest(Request.Method.GET,
+                    url, null,packet,
+                    radioListener,
+                    responseLister,
+                    new Response.ErrorListener() {
+                        @Override
+                        public void onErrorResponse(VolleyError error) {
+                            //Failure Callback
+                        }
+                    }){
+                /**
+                 * Passing some request headers*
+                 */
+                @Override
+                public Map getHeaders() throws AuthFailureError {
+                    HashMap headers = new HashMap();
+                    headers.put("Content-Type", "application/json");
+                    headers.put("school-id", HubRestAPIParams.SchoolID);
+                    headers.put("pi-id", HubRestAPIParams.HubID);
+                    return headers;
+                }
+            };
+
+            // Adding the request to the queue along with a unique string tag
+            addToRequestQueue(jsonObjReq, "getRequest");
+        }
+
     }
 
+    VolleyResponse radioListener = new VolleyResponse() {
+        @Override
+        public void onResponse(JSONObject object, RadioPacket tag) {
+            RadioPacket returnPacket = new RadioPacket(tag);
+            if(object != null) {
+                try {
+                    returnPacket.append(object.get("response"));
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                    returnPacket.append("OK");
+                    mSerialIoManager.writeAsync(returnPacket.marshall((byte)0));
+                }
+            }
+            else
+            {
+                returnPacket.append("OK");
+            }
+            mSerialIoManager.writeAsync(returnPacket.marshall((byte)0));
+        }
+
+        @Override
+        public void onError(VolleyError error, RadioPacket tag) {
+            RadioPacket returnPacket = new RadioPacket(tag);
+            returnPacket.append(error.toString());
+            mSerialIoManager.writeAsync(returnPacket.marshall((byte)0));
+
+        }
+    };
+
+    Response.Listener responseLister = new Response.Listener() {
+        @Override
+        public void onResponse(Object response) {
+        }
+    };
 
     /**
      * Search the data byte array for the first occurrence
@@ -338,5 +552,35 @@ public class HubService extends Service {
 
         return failure;
     }
+
+    /*
+    Create a getRequestQueue() method to return the instance of
+    RequestQueue.This kind of implementation ensures that
+    the variable is instatiated only once and the same
+    instance is used throughout the application
+    */
+    public RequestQueue getRequestQueue() {
+        if (requestQueue == null)
+            requestQueue = Volley.newRequestQueue(getApplicationContext());
+        return requestQueue;
+    }
+    /*
+    public method to add the Request to the the single
+    instance of RequestQueue created above.Setting a tag to every
+    request helps in grouping them. Tags act as identifier
+    for requests and can be used while cancelling them
+    */
+    public void addToRequestQueue(Request request, String tag) {
+        request.setTag(tag);
+        getRequestQueue().add(request);
+    }
+    /*
+    Cancel all the requests matching with the given tag
+    */
+    public void cancelAllRequests(String tag) {
+        getRequestQueue().cancelAll(tag);
+    }
+
+
 
 }

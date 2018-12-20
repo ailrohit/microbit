@@ -37,8 +37,12 @@ import org.json.JSONObject;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -390,21 +394,125 @@ public class HubService extends Service {
                 url = url + "/color-control/";
             }
         }
-        else if (parts[0].compareToIgnoreCase(HubRestAPIParams.PKG_SHARE) == 0)
+        else if (parts[1].compareToIgnoreCase(HubRestAPIParams.PKG_SHARE) == 0)
         {
             url = HubRestAPIParams.ShareDataUrl;
-            if(parts[1].compareToIgnoreCase("fetchData") == 0)
+            if(parts[2].compareToIgnoreCase("fetchData") == 0)
             {
-
+                url = url + parts[3];
             }
-            else if (parts[1].compareToIgnoreCase("shareData") == 0)
+            else if (parts[2].compareToIgnoreCase("shareData") == 0)
             {
-
+                try {
+                    post_params.put("value",parts[3]);
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
             }
-            else if (parts[1].compareToIgnoreCase("historicalData") == 0)
+            else if (parts[2].compareToIgnoreCase("historicalData") == 0)
             {
                 url = HubRestAPIParams.HistoricalUrl;
+                Calendar cal = Calendar.getInstance();
+                Date currentLocalTime = cal.getTime();
+                DateFormat date = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+
+                String localTime = date.format(currentLocalTime);
+                try {
+                    post_params.put("value",parts[3]);
+                    post_params.put("name",parts[4]);
+                    post_params.put("namespace",parts[5]);
+                    post_params.put("unit",parts[6]);
+                    post_params.put("type",0);
+                    post_params.put("time",localTime);
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
             }
+        }
+        else if (parts[1].compareToIgnoreCase(HubRestAPIParams.PKG_ENERGY) == 0)
+        {
+            url = HubRestAPIParams.EnergyDataUrl;
+            if(parts[2].compareToIgnoreCase("energyLevel") == 0) {
+                if (parts[3].compareToIgnoreCase("0") == 0) {
+                    url = url + "energy_type=ELECTRICITY";
+                } else if (parts[3].compareToIgnoreCase("1") == 0) {
+                    url = url + "energy_type=GAS";
+                } else if (parts[3].compareToIgnoreCase("2") == 0) {
+                    url = url + "energy_type=SOLAR";
+                }
+            }
+
+            if(parts[4].compareToIgnoreCase("local") == 0)
+            {
+                url = url + "&location_uid="+ HubRestAPIParams.SchoolID;
+            }
+            else
+            {
+                url = url + "&location_uid="+ parts[4];
+            }
+
+            if(parts.length > 5)
+            if(parts[5].compareToIgnoreCase("historical") == 0)
+            {
+                Calendar cal = Calendar.getInstance();
+                Date currentLocalTime = cal.getTime() ,prevDateTime = cal.getTime();
+                int intParam = Integer.parseInt(parts[7]);
+                DateFormat date = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss z");
+                if(parts[6].compareToIgnoreCase("hour") == 0)
+                {
+                    cal.add(Calendar.HOUR_OF_DAY, - intParam);
+                    prevDateTime = cal.getTime();
+                }
+                else if(parts[6].compareToIgnoreCase("day") == 0)
+                {
+                    cal.add(Calendar.DATE, - intParam);
+                    prevDateTime = cal.getTime();
+                }
+                else if(parts[6].compareToIgnoreCase("week") == 0)
+                {
+                    cal.add(Calendar.DATE, - (intParam * 7));
+                    prevDateTime = cal.getTime();
+                }
+                else if(parts[6].compareToIgnoreCase("month") == 0)
+                {
+                    cal.add(Calendar.DATE, - (intParam * 30));
+                    prevDateTime = cal.getTime();
+                }
+
+                url = url + "&from=" + date.format(prevDateTime) + "&to=" + date.format(currentLocalTime);
+            }
+
+        }
+        else if (parts[1].compareToIgnoreCase(HubRestAPIParams.PKG_CARBON) == 0)
+        {
+            url = HubRestAPIParams.CarbonDataUrl;
+            if(parts[2].compareToIgnoreCase("index") == 0) {
+                url = url + "intensity";
+            }
+            else if(parts[2].compareToIgnoreCase("value") == 0) {
+                url = url + "intensity";
+            }
+            else if(parts[2].compareToIgnoreCase("genmix") == 0) {
+                url = url + "generation";
+            }
+        }
+        else if (parts[1].compareToIgnoreCase(HubRestAPIParams.PKG_ISS) == 0)
+        {
+            url = HubRestAPIParams.IssDataUrl;
+            if(parts[2].compareToIgnoreCase("location") == 0) {
+            }
+            else if(parts[2].compareToIgnoreCase("solarlocation") == 0) {
+            }
+            else if(parts[2].compareToIgnoreCase("velocity") == 0) {
+            }
+            else if(parts[2].compareToIgnoreCase("altitude") == 0) {
+            }
+            else if(parts[2].compareToIgnoreCase("daynum") == 0) {
+            }
+        }
+        else if (parts[1].compareToIgnoreCase(HubRestAPIParams.PKG_WEATHER) == 0)
+        {
+
         }
 
 
@@ -461,7 +569,7 @@ public class HubService extends Service {
                 @Override
                 public Map getHeaders() throws AuthFailureError {
                     HashMap headers = new HashMap();
-                    headers.put("Content-Type", "application/json");
+                    headers.put("Content-Type", "application/json; charset=utf-8");
                     headers.put("school-id", HubRestAPIParams.SchoolID);
                     headers.put("pi-id", HubRestAPIParams.HubID);
                     return headers;

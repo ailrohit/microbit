@@ -355,7 +355,7 @@ public class HubService extends Service {
             {
                 if((packet.getRequestType() ==  RadioPacket.REQUEST_TYPE_POST_REQUEST)) {
                     try {
-                        post_params.put("value", parts[3]);
+                        post_params.put("value", packet.getIntData());
                     } catch (JSONException e) {
 
                     }
@@ -367,7 +367,7 @@ public class HubService extends Service {
             {
                 if(packet.getRequestType() ==  RadioPacket.REQUEST_TYPE_POST_REQUEST) {
                     try {
-                        post_params.put("value", parts[3]);
+                        post_params.put("value", packet.getIntData());
                     } catch (JSONException e) {
 
                     }
@@ -386,7 +386,7 @@ public class HubService extends Service {
             {
                 if(packet.getRequestType() ==  RadioPacket.REQUEST_TYPE_POST_REQUEST) {
                     try {
-                        post_params.put("value", parts[2]);
+                        post_params.put("value", packet.getIntData());
                     } catch (JSONException e) {
 
                     }
@@ -510,6 +510,26 @@ public class HubService extends Service {
             else if(parts[2].compareToIgnoreCase("daynum") == 0) {
             }
         }
+        else if (parts[1].compareToIgnoreCase(HubRestAPIParams.PKG_ENERGY_METER) == 0)
+        {
+            url = HubRestAPIParams.HistoricalUrl;
+                Calendar cal = Calendar.getInstance();
+                Date currentLocalTime = cal.getTime();
+                DateFormat date = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+
+                String localTime = date.format(currentLocalTime);
+                try {
+                    post_params.put("value",String.valueOf(packet.getIntData()));
+                    post_params.put("name",parts[2]);
+                    post_params.put("namespace","energy");
+                    post_params.put("unit","watt");
+                    post_params.put("type",packet.getIntExtraType());
+                    post_params.put("time",localTime);
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+
+        }
         else if (parts[1].compareToIgnoreCase(HubRestAPIParams.PKG_WEATHER) == 0)
         {
 
@@ -588,7 +608,16 @@ public class HubService extends Service {
             RadioPacket returnPacket = new RadioPacket(tag);
             if(object != null) {
                 try {
-                    returnPacket.append(object.get("response"));
+                    Object data;
+                    if(returnPacket.getRequestType() == RadioPacket.REQUEST_TYPE_POST_REQUEST)
+                    {
+                        data = object.get("response");
+                    }
+                    else
+                    {
+                        data = object.get("value");
+                    }
+                    returnPacket.append(data);
                 } catch (JSONException e) {
                     e.printStackTrace();
                     returnPacket.append("OK");

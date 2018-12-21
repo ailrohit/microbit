@@ -15,4 +15,5 @@ public class HubRestAPIParams {
     public static final String PKG_CARBON = "carbon";
     public static final String PKG_SHARE = "share";
     public static final String PKG_ISS = "iss";
+    public static final String PKG_ENERGY_METER = "energyMeter";
 }

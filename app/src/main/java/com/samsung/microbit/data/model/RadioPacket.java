@@ -35,6 +35,7 @@ public class RadioPacket {
     private byte [] uid;
     private byte app_id, name_space;
     private int intData = -1;
+    private int intExtraType = -1;
     private float floatData = (float)-1.0;
     private byte request_type = 1;
     private String strData = "";
@@ -140,6 +141,10 @@ public class RadioPacket {
                     // hoping only one int data per string and that is end
                     intData = toLittleEndian( Arrays.copyOfRange(bytes,counter + 2,counter + 6));
                     Log.d(TAG, "length of remaining byte data " + (bytes.length - counter - 6));
+                    if((bytes.length -counter -6) > 4)
+                    {
+                        intExtraType = toLittleEndian( Arrays.copyOfRange(bytes,counter + 6,counter + 10));
+                    }
                     break;
                 }
                 else if(bytes[counter + 1] == 0xc0)
@@ -175,7 +180,9 @@ public class RadioPacket {
     public byte[] marshall(byte status)
     {
         byte return_code;
-        byte[] endBytes = new byte[] {0,(byte)0xc0};
+        byte[] endBytesString = new byte[] {0,(byte)0xc0};
+        byte[] endBytesInt = new byte[] {(byte)0xc0};
+        byte[] endBytes = endBytesInt;
         if (status == 0)
             return_code = (byte)REQUEST_STATUS_OK;
         else
@@ -206,6 +213,7 @@ public class RadioPacket {
         }
         else if (ReturnType == SUBTYPE_STRING){
             payload = strData.getBytes();
+            endBytes = endBytesString;
         }
 
         if(request_type == REQUEST_TYPE_HELLO)
@@ -215,7 +223,7 @@ public class RadioPacket {
         }
 
 
-        ByteBuffer retBuf = ByteBuffer.allocate(pump_on.length + payload.length + 1 + 2);
+        ByteBuffer retBuf = ByteBuffer.allocate(pump_on.length + payload.length + 1 + endBytes.length);
         retBuf.order(ByteOrder.LITTLE_ENDIAN);
         retBuf.put(pump_on);
         retBuf.put(ReturnType);
@@ -253,6 +261,11 @@ public class RadioPacket {
     public int getIntData()
     {
         return intData;
+    }
+
+    public int getIntExtraType()
+    {
+        return intExtraType;
     }
 
     public float getFloatData()

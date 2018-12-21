@@ -38,18 +38,24 @@ public class RadioJsonObjectRequest extends JsonObjectRequest {
     protected Response<JSONObject> parseNetworkResponse(NetworkResponse response) {
         if(response.statusCode == 200)
         {
-            JSONObject resObject  = new JSONObject();
-            try {
-                String json = new String(
-                        response.data,
-                        HttpHeaderParser.parseCharset(response.headers));
-                resObject.put("response",json);
-            } catch (UnsupportedEncodingException e) {
-                return Response.error(new ParseError(e));
-            }catch (JSONException e1) {
-                e1.printStackTrace();
+            if(tagPacket.getRequestType() == RadioPacket.REQUEST_TYPE_POST_REQUEST) {
+                JSONObject resObject = new JSONObject();
+                try {
+                    String json = new String(
+                            response.data,
+                            HttpHeaderParser.parseCharset(response.headers));
+                    resObject.put("response", json);
+                } catch (UnsupportedEncodingException e) {
+                    return Response.error(new ParseError(e));
+                } catch (JSONException e1) {
+                    e1.printStackTrace();
+                }
+                return Response.success(resObject, HttpHeaderParser.parseCacheHeaders(response));
             }
-            return  Response.success(resObject,HttpHeaderParser.parseCacheHeaders(response)) ;
+            else
+            {
+                return super.parseNetworkResponse(response);
+            }
         }
         else {
             return super.parseNetworkResponse(response);

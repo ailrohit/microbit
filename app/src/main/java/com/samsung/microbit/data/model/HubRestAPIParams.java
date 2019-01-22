@@ -1,7 +1,7 @@
 package com.samsung.microbit.data.model;
 
 public class HubRestAPIParams {
-    public static String HubID = "AHub0001";
+    public static String HubID = "AHub0";
     public static String SchoolID = "820CA";
     public static String SamsungIOT_Url = "https://energyinschools.co.uk/api/v1/micro-bit/devices/";
     public static String HistoricalUrl = "https://energyinschools.co.uk/api/v1/micro-bit/historical-data/";

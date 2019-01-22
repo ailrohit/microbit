@@ -380,7 +380,7 @@ public class HubService extends Service {
             }
             else if(parts[2].compareToIgnoreCase("sensorTemp") == 0)
             {
-                url = url + "/temperature/";
+                url = url + "/temperature-measurement/";
             }
             else if(parts[2].compareToIgnoreCase("bulbColour") == 0)
             {
@@ -612,12 +612,13 @@ public class HubService extends Service {
                     if(returnPacket.getRequestType() == RadioPacket.REQUEST_TYPE_POST_REQUEST)
                     {
                         data = object.get("response");
+                        returnPacket.append(data);
                     }
                     else
                     {
                         data = object.get("value");
+                        returnPacket.append(String.valueOf(data));
                     }
-                    returnPacket.append(data);
                 } catch (JSONException e) {
                     e.printStackTrace();
                     returnPacket.append("OK");

@@ -39,6 +39,7 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.text.DateFormat;
+import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -709,6 +710,57 @@ public class HubService extends Service {
                 }
             }
 
+            return null;
+        }
+        else if (parts[1].compareToIgnoreCase(HubRestAPIParams.PKG_ISS) == 0) {
+
+
+            try {
+                if (parts[2].compareToIgnoreCase("location") == 0) {
+                    DecimalFormat df = new DecimalFormat("##.0000");
+
+                    Double lat = object.getDouble("latitude");
+                    Double longi = object.getDouble("longitude");
+                    strData = "Lat:" + df.format(lat) + ", Lon:" + df.format(longi);
+
+                } else if (parts[2].compareToIgnoreCase("solarlocation") == 0) {
+                    DecimalFormat df = new DecimalFormat("##.0000");
+
+                    Double lat = object.getDouble("solar_lat");
+                    Double longi = object.getDouble("solar_lon");
+                    strData = "Lat:" + df.format(lat) + ", Lon:" + df.format(longi);
+
+                } else if (parts[2].compareToIgnoreCase("velocity") == 0) {
+                    Double vel = object.getDouble(parts[2]);
+                    intData = vel.intValue();
+                    return intData;
+                } else if (parts[2].compareToIgnoreCase("altitude") == 0) {
+                    Double alt = object.getDouble(parts[2]);
+                    intData = alt.intValue();
+                    return intData;
+                } else if (parts[2].compareToIgnoreCase("daynum") == 0) {
+                    Double daynum = object.getDouble(parts[2]);
+                    intData = daynum.intValue();
+                    return intData;
+                }
+                else if (parts[2].compareToIgnoreCase("name") == 0)
+                {
+                   strData = object.getString(parts[2]);
+                }
+                else if (parts[2].compareToIgnoreCase("visibility") == 0)
+                {
+                    strData = object.getString(parts[2]);
+                }
+                else if (parts[2].compareToIgnoreCase("id") == 0)
+                {
+                    intData = (object.getInt(parts[2]));
+                    return intData;
+                }
+                return  strData;
+            } catch (JSONException e) {
+                e.printStackTrace();
+                return null;
+            }
         }
         return null;
     }

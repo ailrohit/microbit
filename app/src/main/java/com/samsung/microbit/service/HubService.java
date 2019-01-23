@@ -31,6 +31,7 @@ import com.samsung.microbit.core.VolleyResponse;
 import com.samsung.microbit.data.model.HubRestAPIParams;
 import com.samsung.microbit.data.model.RadioPacket;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -376,7 +377,7 @@ public class HubService extends Service {
             }
             else if(parts[2].compareToIgnoreCase("sensorState") == 0)
             {
-                url = url + "/motion/";
+                url = url + "/motion-sensor/";
             }
             else if(parts[2].compareToIgnoreCase("sensorTemp") == 0)
             {
@@ -611,13 +612,27 @@ public class HubService extends Service {
                     Object data;
                     if(returnPacket.getRequestType() == RadioPacket.REQUEST_TYPE_POST_REQUEST)
                     {
-                        data = object.get("response");
-                        returnPacket.append(data);
+                        if(object.has("response")) {
+                            data = object.get("response");
+                            returnPacket.append(data);
+                        }
+                        else
+                        {
+                            data = parseResponse(object, tag);
+                            returnPacket.append(data);
+                        }
                     }
                     else
                     {
-                        data = object.get("value");
-                        returnPacket.append(String.valueOf(data));
+                        if(object.has("value")) {
+                            data = object.get("value");
+                            returnPacket.append(String.valueOf(data));
+                        }
+                        else
+                        {
+                            data = parseResponse(object, tag);
+                            returnPacket.append(data);
+                        }
                     }
                 } catch (JSONException e) {
                     e.printStackTrace();
@@ -640,6 +655,63 @@ public class HubService extends Service {
 
         }
     };
+
+    private Object parseResponse(JSONObject object, RadioPacket tag) {
+        String parts [] = tag.getStringData().split("/");
+        int intData = 0;
+        String strData = "";
+
+        if (parts[1].compareToIgnoreCase(HubRestAPIParams.PKG_CARBON) == 0)
+        {
+            if(parts[2].compareToIgnoreCase("index") == 0 ||
+                    parts[2].compareToIgnoreCase("value") == 0) {
+                JSONArray arr = null;
+                try {
+                    arr = object.getJSONArray("data");
+
+                    JSONObject obj = arr.getJSONObject(0).getJSONObject("intensity");
+                    if(parts[2].compareToIgnoreCase("index") == 0) {
+                        strData = obj.getString(parts[2]);
+                        return strData;
+                    }
+                    else if(parts[2].compareToIgnoreCase("value") == 0) {
+                       if(obj.has("actual"))
+                       {
+                           intData = obj.getInt("actual");
+                       }
+                       else if (obj.has("forecast"))
+                       {
+                           intData = obj.getInt("forecast");
+                       }
+                       return String.valueOf(intData);
+                    }
+                    return  null;
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                    return  null;
+                }
+            }
+            else if(parts[2].compareToIgnoreCase("genmix") == 0) {
+                JSONArray arr = null;
+                try {
+                    arr = object.getJSONObject("data").getJSONArray("generationmix");
+                    for (int i = 0; i < arr.length(); i++)
+                    {
+                        if(parts[3].compareToIgnoreCase(arr.getJSONObject(i).getString("fuel")) == 0)
+                        {
+                            Double dData = arr.getJSONObject(i).getDouble("perc");
+                            return dData.toString();
+                        }
+                    }
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                    return null;
+                }
+            }
+
+        }
+        return null;
+    }
 
     Response.Listener responseLister = new Response.Listener() {
         @Override

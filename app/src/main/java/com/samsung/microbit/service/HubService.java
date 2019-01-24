@@ -401,12 +401,13 @@ public class HubService extends Service {
             url = HubRestAPIParams.ShareDataUrl;
             if(parts[2].compareToIgnoreCase("fetchData") == 0)
             {
-                url = url + parts[3];
+                url = url + parts[3] + "/";
             }
             else if (parts[2].compareToIgnoreCase("shareData") == 0)
             {
+                url = url + parts[3] + "/";
                 try {
-                    post_params.put("value",parts[3]);
+                    post_params.put("value",parts[4]);
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
@@ -459,7 +460,7 @@ public class HubService extends Service {
                 Calendar cal = Calendar.getInstance();
                 Date currentLocalTime = cal.getTime() ,prevDateTime = cal.getTime();
                 int intParam = Integer.parseInt(parts[7]);
-                DateFormat date = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss z");
+                DateFormat date = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
                 if(parts[6].compareToIgnoreCase("hour") == 0)
                 {
                     cal.add(Calendar.HOUR_OF_DAY, - intParam);

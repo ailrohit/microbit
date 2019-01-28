@@ -399,15 +399,36 @@ public class HubService extends Service {
         else if (parts[1].compareToIgnoreCase(HubRestAPIParams.PKG_SHARE) == 0)
         {
             url = HubRestAPIParams.ShareDataUrl;
+
+            String sharedWith = "";
+
+
+
             if(parts[2].compareToIgnoreCase("fetchData") == 0)
             {
-                url = url + parts[3] + "/";
+                if(parts[4].equalsIgnoreCase("local"))
+                {
+                    //sharedWith;
+                    url = url + parts[3] + "/";
+                }
+                else {
+                    //sharedWith = parts[4];
+                    url = url + parts[3] + "/school/" + parts[4] + "/";
+                }
+
             }
             else if (parts[2].compareToIgnoreCase("shareData") == 0)
             {
+                if(parts.length > 5)
+                {
+                    sharedWith = parts[5];
+                }
                 url = url + parts[3] + "/";
+
                 try {
+                    post_params.put("key",parts[3]);
                     post_params.put("value",parts[4]);
+                    post_params.put("shared_with",sharedWith);
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
@@ -614,15 +635,9 @@ public class HubService extends Service {
                     Object data;
                     if(returnPacket.getRequestType() == RadioPacket.REQUEST_TYPE_POST_REQUEST)
                     {
-                        if(object.has("response")) {
-                            data = object.get("response");
-                            returnPacket.append(data);
-                        }
-                        else
-                        {
+
                             data = parseResponse(object, tag);
                             returnPacket.append(data);
-                        }
                     }
                     else
                     {
@@ -758,6 +773,55 @@ public class HubService extends Service {
                     return intData;
                 }
                 return  strData;
+            } catch (JSONException e) {
+                e.printStackTrace();
+                return null;
+            }
+        }
+        else if (parts[1].compareToIgnoreCase(HubRestAPIParams.PKG_SHARE) == 0)
+        {
+            try {
+                if(parts[2].compareToIgnoreCase("fetchData") == 0)
+                {
+                    if(object.has("response")) {
+                        return object.get("response");
+                    }
+
+                }
+                else if(parts[2].compareToIgnoreCase("shareData") == 0)
+                {
+                    if(object.has("response")) {
+                        String data = object.getString("response");
+                        if (data.contains(parts[3])) {
+                            return "OK";
+                        } else {
+                            return data;
+                        }
+
+                    }
+                }
+                else if (parts[2].compareToIgnoreCase("historicalData") == 0)
+                {
+                    if(object.has("name")) {
+                        return "OK";
+                    }
+                    else
+                    {
+                        return object;
+                    }
+                }
+            }
+            catch (JSONException e) {
+            e.printStackTrace();
+            return  null;
+            }
+        }
+        else {
+            try {
+                if (object.has("response")) {
+                    return object.get("response");
+                }
+
             } catch (JSONException e) {
                 e.printStackTrace();
                 return null;

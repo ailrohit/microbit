@@ -314,7 +314,7 @@ public class HubService extends Service {
         String parts [] = packet.getStringData().split("/");
         JSONObject post_params = new JSONObject();
 
-        if(parts.length == 0)
+        if(parts.length == 0 || parts.length == 1 )
         {
             // handle exception nothing can be done
             RadioPacket returnPacket = new RadioPacket(packet);

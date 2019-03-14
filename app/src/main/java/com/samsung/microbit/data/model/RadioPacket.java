@@ -39,7 +39,7 @@ public class RadioPacket {
     private float floatData = (float)-1.0;
     private byte request_type = 1;
     private String strData = "";
-    private String [] inputStrData;
+    private String strDataExtra = "";
 
     public RadioPacket(RadioPacket radioPacket){
         uid = radioPacket.uid;
@@ -105,6 +105,8 @@ public class RadioPacket {
             unmarshall(Arrays.copyOfRange(reminder,4,(reminder.length - 1)));
         }
 
+
+
         Log.d(TAG, "subType=" + subType + " strData=" + strData + " intData=" + intData + " floatData=" + floatData);
     }
 
@@ -147,9 +149,25 @@ public class RadioPacket {
                     }
                     break;
                 }
-                else if(bytes[counter + 1] == 0xc0)
+                else if(bytes[counter + 1] == -64)
                 {
                     break; // end mark for input data
+                }
+            }
+            if(bytes[counter] == -64)
+            {
+                if(request_type == RadioPacket.REQUEST_TYPE_HELLO)
+                {
+                    byte [] reminder = Arrays.copyOfRange(bytes,0,counter);
+                    if(strDataExtra.length() == 0)
+                    {
+                        strDataExtra += new String(reminder, StandardCharsets.US_ASCII);
+                    }
+                    else {
+                        strDataExtra += new String(reminder, StandardCharsets.US_ASCII) + "/";
+                    }
+
+                    Log.d(TAG, "new strDataExtra = " + strDataExtra );
                 }
             }
         }
@@ -220,6 +238,8 @@ public class RadioPacket {
         {
             buf.putInt(intData);
             payload = buf.array();
+            HubRestAPIParams.HubID = strDataExtra;
+            HubRestAPIParams.SchoolID = strData;
         }
 
 
